@@ -117,3 +117,22 @@ Core ticketing and manual seat selection must remain 100% operational regardless
 * **LLM Engine:** Dedicated FastAPI service wrapping the configured LLM provider with strict Pydantic validation.
 * **Database & Seed Data:** PostgreSQL migrations/schema script and a seed file creating an event with a multi-row seat map across tiers (see 5.x for the POC grid layout and row-as-tier mapping).
 * **Testing & Documentation:** Automated Python concurrency verification test and a clean `README.md` detailing architecture, configuration, `.env.example`, and reproduction steps.
+
+---
+
+## 8. Repository Structure
+```text
+frontrow/
+├── frontend/              # Next.js / React app code (seat map, countdown timer, checkout, AI prompt)
+│   └── .env.example       # e.g. NEXT_PUBLIC_API_BASE_URL
+├── backend/               # FastAPI app code (auth, events, hold/release/checkout logic, orders)
+│   ├── alembic/           # Database migrations
+│   ├── tests/             # Concurrency test script (test_concurrency.py)
+│   └── .env.example       # DB URL, JWT secret, hold window (env-configurable), LLM-engine base URL
+├── llm-engine/            # FastAPI microservice (swappable LLM provider interface — default: Gemini; Pydantic schemas)
+│   └── .env.example       # LLM provider API key, provider selection
+├── scripts/               # Seed data (seed_event.py or seed.sql)
+├── docker-compose.yml      # (Optional) Runs PostgreSQL, backend, llm-engine, frontend
+└── README.md              # Setup guide & concurrency architecture explanation
+```
+Each service (frontend/, backend/, llm-engine/) owns its own .env.example, since docker-compose is optional per the brief — a standalone (non-docker) run of any service must be able to source its own environment independently, without relying on a single root-level .env file[cite: 2]. Internal code organization within each service (e.g., naming conventions like app/ or src/) is intentionally left to the implementation/spec phase, not fixed at this level.
