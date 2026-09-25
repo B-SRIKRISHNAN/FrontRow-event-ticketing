@@ -213,12 +213,12 @@ def ensure_dependencies() -> bool:
             return False
         backend_uv = get_uv_binary(BACKEND_DIR)
 
-    print("  [BOOTSTRAP] Synchronizing dependencies via 'uv sync' in backend/...")
-    res = subprocess.run([str(backend_uv), "sync"], cwd=BACKEND_DIR)
+    print("  [BOOTSTRAP] Synchronizing dependencies via 'uv sync --extra dev' in backend/...")
+    res = subprocess.run([str(backend_uv), "sync", "--extra", "dev"], cwd=BACKEND_DIR)
     if res.returncode != 0:
         print("ERROR: 'uv sync' failed in backend/.", file=sys.stderr)
         return False
-    print("  [OK] Backend dependencies synchronized.")
+    print("  [OK] Backend dependencies (including dev) synchronized.")
 
     # 2. LLM Engine venv + uv sync
     llm_venv = LLM_DIR / ".venv"
@@ -240,14 +240,19 @@ def ensure_dependencies() -> bool:
             return False
         llm_uv = get_uv_binary(LLM_DIR)
 
-    print("  [BOOTSTRAP] Synchronizing dependencies via 'uv sync' in llm-engine/...")
-    res = subprocess.run([str(llm_uv), "sync"], cwd=LLM_DIR)
+    print("  [BOOTSTRAP] Synchronizing dependencies via 'uv sync --extra dev' in llm-engine/...")
+    res = subprocess.run([str(llm_uv), "sync", "--extra", "dev"], cwd=LLM_DIR)
     if res.returncode != 0:
         print("ERROR: 'uv sync' failed in llm-engine/.", file=sys.stderr)
         return False
-    print("  [OK] LLM Engine dependencies synchronized.")
+    print("  [OK] LLM Engine dependencies (including dev) synchronized.")
 
-    # 3. Frontend node_modules
+    # 3. Frontend node_modules & .next cache cleanup
+    frontend_next_cache = FRONTEND_DIR / ".next"
+    if frontend_next_cache.exists():
+        print("  [CLEANUP] Clearing stale frontend .next build cache...")
+        shutil.rmtree(frontend_next_cache, ignore_errors=True)
+
     frontend_modules = FRONTEND_DIR / "node_modules"
     if not frontend_modules.exists():
         print("  [BOOTSTRAP] Installing Frontend npm packages (node_modules)...")
