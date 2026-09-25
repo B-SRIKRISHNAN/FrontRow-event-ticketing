@@ -153,4 +153,7 @@
 **Purpose**: Track findings and remediations identified during convergence assessment
 
 - [x] T020 Add route alias `@router.post("/checkout/holds/{hold_id}")` in `backend/app/api/v1/checkout.py` per `contracts/user_flow_contracts.md` and `US3/AC2` (`partial`)
+- [x] T021 Update seat map legend color swatches and add CSS status tokens in `frontend/app/events/[id]/page.js` and `frontend/app/globals.css` per `US2/AC2` (`partial`)
+- [x] T022 Add manual "Cancel Hold" button calling `DELETE /api/v1/holds/{hold_id}` in `frontend/app/events/[id]/page.js` per `US3/AC1` (`partial`)
+
 

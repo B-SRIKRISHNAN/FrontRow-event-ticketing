@@ -35,6 +35,11 @@
   --seat-selected-text: #22d3ee;
   --seat-selected-glow: 0 0 16px rgba(6, 182, 212, 0.5);
 
+  /* Status Aliases */
+  --status-available: #10b981;
+  --status-locked: #f59e0b;
+  --status-sold: #334155;
+
   /* Typography & Accents */
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;

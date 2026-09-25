@@ -13,5 +13,6 @@
 | **Seat Map** | `/events/[id]` | Page Load & 4s Poll | `GET /api/v1/events/{id}/seats` | None | `SeatMapResponse` |
 | **AI Search** | `/events/[id]` | Search Submit | `POST /api/v1/events/{id}/ai-search` | `{query}` | `AISearchResponse` |
 | **Hold Lease** | `/events/[id]` | Click Hold | `POST /api/v1/events/{id}/holds` | `{seat_ids}` | `HoldResponse` |
+| **Release Hold** | `/events/[id]` | Click Cancel Hold | `DELETE /api/v1/holds/{holdId}` | None | `{message: "Hold released successfully"}` |
 | **Checkout** | `/events/[id]` | Click Checkout | `POST /api/v1/checkout/holds/{holdId}` | `{payment_token}` | `OrderResponse` |
 | **My Orders** | `/orders` | Page Load | `GET /api/v1/orders` | None | `List[OrderResponse]` |

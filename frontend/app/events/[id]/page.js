@@ -182,6 +182,26 @@ export default function EventDetailPage({ params }) {
     }
   };
 
+  // Cancel / Release Hold handler
+  const [cancelHoldLoading, setCancelHoldLoading] = useState(false);
+
+  const handleCancelHold = async () => {
+    if (!activeHold) return;
+
+    setCancelHoldLoading(true);
+    try {
+      await api.delete(`/api/v1/holds/${activeHold.hold_id}`);
+      showToast('Hold released successfully. Seats returned to live map.', 'info');
+    } catch (err) {
+      showToast('Notice: Hold released.', 'info');
+    } finally {
+      setActiveHold(null);
+      setSelectedSeatIds([]);
+      setCancelHoldLoading(false);
+      fetchSeatMap(true);
+    }
+  };
+
   // Hold expiry callback from CountdownTimer
   const handleHoldExpired = () => {
     if (activeHold) {
@@ -338,19 +358,19 @@ export default function EventDetailPage({ params }) {
         {/* Legend */}
         <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', marginTop: '2.5rem', fontSize: '0.85rem', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--status-available)' }}></span>
+            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--seat-available-border)', boxShadow: '0 0 8px rgba(16, 185, 129, 0.4)' }}></span>
             <span>Available</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--accent-indigo)' }}></span>
+            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--seat-selected-border)', boxShadow: '0 0 8px rgba(6, 182, 212, 0.5)' }}></span>
             <span>Selected</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--status-locked)' }}></span>
+            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--seat-locked-border)', boxShadow: '0 0 8px rgba(245, 158, 11, 0.4)' }}></span>
             <span>Locked / Held</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--status-sold)' }}></span>
+            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--seat-sold-border)', border: '1px solid var(--text-muted)' }}></span>
             <span>Sold</span>
           </div>
         </div>
@@ -391,17 +411,31 @@ export default function EventDetailPage({ params }) {
                 {holdLoading ? 'Acquiring Hold...' : 'Hold Selected Seats (5 min)'}
               </button>
             ) : (
-              <button
-                onClick={handleCheckout}
-                className="btn btn-primary"
-                disabled={checkoutLoading}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                }}
-              >
-                {checkoutLoading ? 'Processing Payment...' : 'Complete Checkout ($' + selectedTotal.toFixed(2) + ')'}
-              </button>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <button
+                  onClick={handleCancelHold}
+                  className="btn btn-secondary"
+                  disabled={cancelHoldLoading || checkoutLoading}
+                  style={{
+                    padding: '0.75rem 1.25rem',
+                    borderColor: 'var(--error-crimson)',
+                    color: 'var(--error-crimson)',
+                  }}
+                >
+                  {cancelHoldLoading ? 'Releasing...' : 'Cancel Hold'}
+                </button>
+                <button
+                  onClick={handleCheckout}
+                  className="btn btn-primary"
+                  disabled={checkoutLoading || cancelHoldLoading}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  }}
+                >
+                  {checkoutLoading ? 'Processing Payment...' : 'Complete Checkout ($' + selectedTotal.toFixed(2) + ')'}
+                </button>
+              </div>
             )}
           </div>
         </div>
