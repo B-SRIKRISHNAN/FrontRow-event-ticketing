@@ -24,7 +24,18 @@ def load_env_file(env_path: Path) -> dict:
     return env_vars
 
 
-def run_migrations(revision: str = "head", backend_dir: Path | None = None) -> int:
+def get_python_interpreter(backend_dir: Path) -> str:
+    """Find Python interpreter with alembic installed, preferring backend/.venv if present."""
+    venv_win = backend_dir / ".venv" / "Scripts" / "python.exe"
+    if venv_win.exists():
+        return str(venv_win)
+    venv_nix = backend_dir / ".venv" / "bin" / "python"
+    if venv_nix.exists():
+        return str(venv_nix)
+    return sys.executable
+
+
+def run_migrations(revision: str = "head", downgrade: bool = False, backend_dir: Path | None = None) -> int:
     root_dir = Path(__file__).resolve().parent.parent
     if backend_dir is None:
         backend_dir = root_dir / "backend"
@@ -48,10 +59,21 @@ def run_migrations(revision: str = "head", backend_dir: Path | None = None) -> i
         )
         return 1
 
+    action = "downgrade" if downgrade or revision == "base" else "upgrade"
     print(f"Connecting to database configuration from {backend_dir / '.env' if env_file.exists() else 'environment'}...")
-    print(f"Running Alembic migration upgrade to '{revision}'...")
+    print(f"Running Alembic migration {action} to '{revision}'...")
 
-    cmd = [sys.executable, "-m", "alembic", "upgrade", revision]
+    python_bin = get_python_interpreter(backend_dir)
+    # Programmatic alembic command script executed via the target python interpreter
+    py_code = (
+        "import os, sys; "
+        "from alembic.config import Config; "
+        "from alembic import command; "
+        "cfg = Config('alembic.ini'); "
+        f"command.{action}(cfg, '{revision}')"
+    )
+    cmd = [python_bin, "-c", py_code]
+
     try:
         result = subprocess.run(cmd, cwd=backend_dir, env=current_env, check=True)
         print("Database migrations applied successfully.")
@@ -72,6 +94,11 @@ def main():
         help="Alembic target revision (default: 'head')",
     )
     parser.add_argument(
+        "--downgrade",
+        action="store_true",
+        help="Perform migration downgrade to target revision",
+    )
+    parser.add_argument(
         "--backend-dir",
         type=Path,
         default=None,
@@ -79,7 +106,7 @@ def main():
     )
     args = parser.parse_args()
 
-    sys.exit(run_migrations(revision=args.revision, backend_dir=args.backend_dir))
+    sys.exit(run_migrations(revision=args.revision, downgrade=args.downgrade, backend_dir=args.backend_dir))
 
 
 if __name__ == "__main__":

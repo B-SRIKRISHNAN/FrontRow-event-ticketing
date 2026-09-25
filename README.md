@@ -65,12 +65,23 @@ npm install
 
 ---
 
-### 3. Database Migrations
+### 3. Database Migrations & Seeding
 
-Database schema changes are managed exclusively via Alembic (`backend/alembic/`) per Constitution Principle VIII. Execute the cross-platform migration runner:
+Database schema changes are managed exclusively via Alembic (`backend/alembic/`) per Constitution Principle VIII. Execute the cross-platform migration runner to apply DDL:
 
 ```bash
 python scripts/run_migrations.py
+```
+
+To roll back migrations to base:
+```bash
+python scripts/run_migrations.py --revision base
+```
+
+To populate the deterministic seed user (`demo@frontrow.com`), seed event ("FrontRow Grand Concert"), and 30 physical seat records (Rows A: $150, B: $100, C: $50), execute the DML seed script:
+
+```bash
+python scripts/seed_event.py
 ```
 
 ---
