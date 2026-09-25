@@ -59,14 +59,14 @@ class LLMClient:
                 "Falling back to manual seat selection."
             )
 
-        # Fallback response: default 2 adjacent seats, manual map recommendation
+        # Fallback response: trigger clean manual seat selection without arbitrary defaults
         fallback_parsed = ParsedSeatQuery(
-            quantity=2,
-            adjacency=True,
+            quantity=0,
+            adjacency=False,
             max_price=None,
             preferred_section=None,
         )
-        logger.info(f"[LLM-CLIENT] Returning fallback parameters: {fallback_parsed.model_dump()}")
+        logger.info(f"[LLM-CLIENT] Returning clean fallback parameters (quantity=0, fallback=True)")
         return fallback_parsed, True
 
 

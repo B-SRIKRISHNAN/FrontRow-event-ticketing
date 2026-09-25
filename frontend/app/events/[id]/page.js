@@ -226,15 +226,18 @@ export default function EventDetailPage({ params }) {
       const candidates = res.recommended_seat_ids || res.candidate_seats || [];
       const fallback = res.fallback_to_manual;
 
-      if (candidates.length > 0) {
+      if (fallback) {
+        setSelectedSeatIds([]);
+        showToast('AI recommendation unavailable or timed out. Please select seats manually on the grid.', 'info');
+      } else if (candidates.length > 0) {
         setSelectedSeatIds(candidates);
         showToast(`AI matched ${candidates.length} seat(s) matching your prompt!`, 'success');
-      } else if (fallback) {
-        showToast('AI recommendation unavailable or no exact match found. Please select seats manually on the grid.', 'info');
       } else {
-        showToast('No matching seats found for your search criteria.', 'info');
+        setSelectedSeatIds([]);
+        showToast('No matching seats found for your search criteria. Please pick seats manually.', 'info');
       }
     } catch (err) {
+      setSelectedSeatIds([]);
       showToast('AI recommendation engine unreachable. Please pick seats manually.', 'info');
     } finally {
       setAiLoading(false);

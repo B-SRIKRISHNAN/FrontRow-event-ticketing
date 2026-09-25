@@ -96,19 +96,24 @@ async def ai_search_seats(
             detail=f"Event with ID {id} not found.",
         )
 
-    # Step 1: Call decoupled LLM Engine microservice (with 3.0s timeout & fallback)
+    # Step 1: Call decoupled LLM Engine microservice (with timeout & fallback)
     parsed_params, llm_fallback = await llm_client.parse_query(payload.query)
     logger.info(f"[AI-SEARCH-FLOW] LLM Parsed Parameters -> {parsed_params.model_dump()} (llm_fallback={llm_fallback})")
 
-    # Step 2: Execute deterministic row-as-tier contiguity seat matching (Principle IV)
-    recommended_ids, matcher_fallback = await seat_matcher.match_candidate_seats(
-        db=db,
-        event_id=id,
-        quantity=parsed_params.quantity,
-        adjacency=parsed_params.adjacency,
-        max_price=parsed_params.max_price,
-        preferred_section=parsed_params.preferred_section,
-    )
+    if llm_fallback or parsed_params.quantity < 1:
+        recommended_ids = []
+        matcher_fallback = True
+        logger.info("[AI-SEARCH-FLOW] LLM microservice fallback triggered. Skipping seat matcher to prompt manual selection.")
+    else:
+        # Step 2: Execute deterministic row-as-tier contiguity seat matching (Principle IV)
+        recommended_ids, matcher_fallback = await seat_matcher.match_candidate_seats(
+            db=db,
+            event_id=id,
+            quantity=parsed_params.quantity,
+            adjacency=parsed_params.adjacency,
+            max_price=parsed_params.max_price,
+            preferred_section=parsed_params.preferred_section,
+        )
 
     fallback_to_manual = llm_fallback or matcher_fallback
     logger.info(f"=== [AI-SEARCH-FLOW END] Candidate Seat IDs: {recommended_ids} | Fallback to Manual: {fallback_to_manual} ===")
