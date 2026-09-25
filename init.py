@@ -34,26 +34,35 @@ def load_env_file(env_path: Path) -> dict:
     return env_vars
 
 
-def copy_env_files():
-    """Copy .env.example templates to .env files across service directories if missing."""
-    env_pairs = [
-        (BACKEND_DIR / ".env.example", BACKEND_DIR / ".env"),
-        (LLM_DIR / ".env.example", LLM_DIR / ".env"),
-        (FRONTEND_DIR / ".env.example", FRONTEND_DIR / ".env"),
+def verify_env_files() -> bool:
+    """Verify that required .env files exist in each service directory before execution."""
+    required_envs = [
+        (BACKEND_DIR / ".env", BACKEND_DIR / ".env.example"),
+        (LLM_DIR / ".env", LLM_DIR / ".env.example"),
+        (FRONTEND_DIR / ".env", FRONTEND_DIR / ".env.example"),
     ]
 
-    print("=== Step 1: Environment Configuration ===")
-    for example_file, target_env in env_pairs:
-        rel_target = target_env.relative_to(ROOT_DIR)
-        if target_env.exists():
-            print(f"  [SKIP] {rel_target} already exists.")
+    print("=== Step 1: Environment Verification ===")
+    missing_count = 0
+
+    for env_file, example_file in required_envs:
+        rel_env = env_file.relative_to(ROOT_DIR)
+        rel_example = example_file.relative_to(ROOT_DIR)
+
+        if env_file.exists():
+            print(f"  [OK] {rel_env} found.")
         else:
-            if example_file.exists():
-                shutil.copyfile(example_file, target_env)
-                print(f"  [CREATED] {rel_target} created from {example_file.name}.")
-            else:
-                print(f"  [WARNING] Template {example_file} missing; skipped.")
-    print()
+            print(f"  [MISSING] {rel_env} is missing!")
+            print(f"            Please copy {rel_example} to {rel_env} and configure required environment variables.")
+            missing_count += 1
+
+    if missing_count > 0:
+        print(f"\nERROR: {missing_count} required .env file(s) missing.", file=sys.stderr)
+        print("Please set up all required environment files before running the initialization script.", file=sys.stderr)
+        return False
+
+    print("All environment files verified successfully.\n")
+    return True
 
 
 def check_port_in_use(port: int, host: str = "127.0.0.1") -> bool:
@@ -263,9 +272,10 @@ def main():
     print("==========================================================")
     print()
 
-    # 1. Environment files setup
+    # 1. Environment files verification
     if not args.skip_env:
-        copy_env_files()
+        if not verify_env_files():
+            sys.exit(1)
 
     # Pre-flight DB check
     if not args.skip_migrations or not args.skip_seed:

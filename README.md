@@ -130,7 +130,7 @@ FrontRow enforces a strict **Zero Secret Leakage** policy. Real `.env` files liv
    copy llm-engine\.env.example llm-engine\.env
    copy frontend\.env.example frontend\.env
    ```
-   *(Note: If `.env` files are missing, `init.py` will auto-generate them from `.env.example` templates, but pre-configuring your `.env` files ensures custom credentials like your Gemini API key are loaded).*
+   *(Note: `init.py` performs a strict pre-flight check to verify that all 3 `.env` files exist before running migrations or seeding, and will halt with an error if any required `.env` file is missing).*
 
 2. **Execute Initialization Runner**:
    Run the setup script to execute database migrations, seed initial data, and automatically launch all 3 microservices in **3 dedicated, separate console windows**:
