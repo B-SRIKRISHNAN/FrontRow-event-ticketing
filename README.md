@@ -123,7 +123,17 @@ FrontRow enforces a strict **Zero Secret Leakage** policy. Real `.env` files liv
 
 ### Option A: One-Shot Automated Setup & Runner (Recommended)
 
-Run the one-shot initialization script to automatically copy `.env` templates, execute database migrations, seed initial data, and launch all 3 microservices:
+1. **Configure Environment Files**:
+   Before executing the runner, copy `.env.example` to `.env` in each service directory and configure your keys (e.g. `GEMINI_API_KEY` in `llm-engine/.env`):
+   ```bash
+   copy backend\.env.example backend\.env
+   copy llm-engine\.env.example llm-engine\.env
+   copy frontend\.env.example frontend\.env
+   ```
+   *(Note: If `.env` files are missing, `init.py` will auto-generate them from `.env.example` templates, but pre-configuring your `.env` files ensures custom credentials like your Gemini API key are loaded).*
+
+2. **Execute Initialization Runner**:
+   Run the setup script to execute database migrations, seed initial data, and automatically launch all 3 microservices in **3 dedicated, separate console windows**:
 
 ```powershell
 # Cross-platform Python entry point
@@ -133,7 +143,7 @@ python init.py
 .\init.ps1
 ```
 
-To run initialization without launching the persistent microservices:
+To run initialization without launching the microservice console windows:
 ```powershell
 python init.py --skip-services
 ```

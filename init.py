@@ -198,18 +198,23 @@ def start_services():
     npm_bin = "npm.cmd" if sys.platform == "win32" else "npm"
     frontend_cmd = [npm_bin, "run", "dev"]
 
+    # Configure dedicated console window creation for Windows
+    popen_kwargs = {}
+    if sys.platform == "win32":
+        popen_kwargs["creationflags"] = subprocess.CREATE_NEW_CONSOLE
+
     processes = []
     try:
-        print("Launching Backend API on http://localhost:8000...")
-        p_backend = subprocess.Popen(backend_cmd, cwd=BACKEND_DIR)
+        print("Launching Backend API (:8000) in dedicated console window...")
+        p_backend = subprocess.Popen(backend_cmd, cwd=BACKEND_DIR, **popen_kwargs)
         processes.append(("Backend API", p_backend))
 
-        print("Launching LLM Engine on http://localhost:8001...")
-        p_llm = subprocess.Popen(llm_cmd, cwd=LLM_DIR)
+        print("Launching LLM Engine (:8001) in dedicated console window...")
+        p_llm = subprocess.Popen(llm_cmd, cwd=LLM_DIR, **popen_kwargs)
         processes.append(("LLM Engine", p_llm))
 
-        print("Launching Frontend App on http://localhost:3000...")
-        p_frontend = subprocess.Popen(frontend_cmd, cwd=FRONTEND_DIR)
+        print("Launching Frontend App (:3000) in dedicated console window...")
+        p_frontend = subprocess.Popen(frontend_cmd, cwd=FRONTEND_DIR, **popen_kwargs)
         processes.append(("Frontend App", p_frontend))
 
         print()
