@@ -90,7 +90,7 @@ share/python-wheels/
 .installed.cfg
 MANIFEST
 .Python
-lib/
+# lib/
 lib64/
 .pdm-python
 .pdm-build/
