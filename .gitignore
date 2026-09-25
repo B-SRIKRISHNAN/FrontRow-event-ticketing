@@ -168,3 +168,44 @@ __marimo__/
 .spyproject
 .ropeproject
 *.sage.py
+
+# =====================================
+# GitHub Spec Kit & Antigravity (agy)
+# =====================================
+
+# Local agent run artifacts, session memory, and runtime scratchpads
+.specify/.cache/
+.specify/tmp/
+.specify/*.log
+.specify/local/
+
+# Antigravity CLI / Agent local execution states
+.agy/
+.antigravity/
+*.agy.local
+
+# Spec Kit temporary execution files & diff outputs
+.specify/**/scratchpad.md
+.specify/**/.draft*
+
+# --------------------------------------------------
+# Agent Security & Local Session State
+# --------------------------------------------------
+
+# Ignore credentials, auth tokens, and secret environments
+.agents/**/credentials*
+.agents/**/token*
+.agents/**/auth*
+.agents/**/.env
+.agents/**/*.env
+.agents/**/*.env.local
+.agents/**/*.key
+.agents/**/*.pem
+
+# Ignore ephemeral agent runs and caches
+.agents/**/sessions/
+.agents/**/cache/
+.agents/**/*.log
+
+# Local developer overrides
+.agents/**/*.local.*
