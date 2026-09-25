@@ -289,16 +289,15 @@ def start_services():
     backend_py = get_python_interpreter(BACKEND_DIR)
     llm_py = get_python_interpreter(LLM_DIR)
 
+    backend_cmd = [backend_py, "-m", "uvicorn", "app.main:app", "--port", "8000", "--reload"]
+    llm_cmd = [llm_py, "-m", "uvicorn", "app.main:app", "--port", "8001", "--reload"]
+
+    npm_bin = "npm.cmd" if sys.platform == "win32" else "npm"
+    frontend_cmd = [npm_bin, "run", "dev"]
+
     popen_kwargs = {}
     if sys.platform == "win32":
-        backend_cmd = ["cmd.exe", "/k", f"title FrontRow - Backend API (:8000) && \"{backend_py}\" -m uvicorn app.main:app --port 8000 --reload"]
-        llm_cmd = ["cmd.exe", "/k", f"title FrontRow - LLM Engine (:8001) && \"{llm_py}\" -m uvicorn app.main:app --port 8001 --reload"]
-        frontend_cmd = ["cmd.exe", "/k", f"title FrontRow - Frontend App (:3000) && npm run dev"]
         popen_kwargs["creationflags"] = subprocess.CREATE_NEW_CONSOLE
-    else:
-        backend_cmd = [backend_py, "-m", "uvicorn", "app.main:app", "--port", "8000", "--reload"]
-        llm_cmd = [llm_py, "-m", "uvicorn", "app.main:app", "--port", "8001", "--reload"]
-        frontend_cmd = ["npm", "run", "dev"]
 
     processes = []
     try:
