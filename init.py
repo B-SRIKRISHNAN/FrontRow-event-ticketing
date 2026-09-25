@@ -175,8 +175,96 @@ def run_seed_data() -> bool:
         return False
 
 
+def get_uv_binary(service_dir: Path) -> Path | None:
+    """Find uv binary inside the service virtual environment or global PATH."""
+    uv_win = service_dir / ".venv" / "Scripts" / "uv.exe"
+    if uv_win.exists():
+        return uv_win
+    uv_nix = service_dir / ".venv" / "bin" / "uv"
+    if uv_nix.exists():
+        return uv_nix
+    global_uv = shutil.which("uv")
+    if global_uv:
+        return Path(global_uv)
+    return None
+
+
+def ensure_dependencies() -> bool:
+    """Bootstrap virtual environments, install venv-local uv, and run uv sync for backend & llm-engine."""
+    print("=== Step 0: Dependency Bootstrapping ===")
+
+    # 1. Backend venv + uv sync
+    backend_venv = BACKEND_DIR / ".venv"
+    if not backend_venv.exists():
+        print("  [BOOTSTRAP] Creating virtual environment in backend/.venv...")
+        res = subprocess.run([sys.executable, "-m", "venv", str(backend_venv)], cwd=BACKEND_DIR)
+        if res.returncode != 0:
+            print("ERROR: Failed to create backend virtual environment.", file=sys.stderr)
+            return False
+
+    backend_py = get_python_interpreter(BACKEND_DIR)
+    backend_uv = get_uv_binary(BACKEND_DIR)
+
+    if not backend_uv:
+        print("  [BOOTSTRAP] Installing 'uv' inside backend/.venv...")
+        res = subprocess.run([backend_py, "-m", "pip", "install", "uv"], cwd=BACKEND_DIR)
+        if res.returncode != 0:
+            print("ERROR: Failed to install uv in backend/.venv.", file=sys.stderr)
+            return False
+        backend_uv = get_uv_binary(BACKEND_DIR)
+
+    print("  [BOOTSTRAP] Synchronizing dependencies via 'uv sync' in backend/...")
+    res = subprocess.run([str(backend_uv), "sync"], cwd=BACKEND_DIR)
+    if res.returncode != 0:
+        print("ERROR: 'uv sync' failed in backend/.", file=sys.stderr)
+        return False
+    print("  [OK] Backend dependencies synchronized.")
+
+    # 2. LLM Engine venv + uv sync
+    llm_venv = LLM_DIR / ".venv"
+    if not llm_venv.exists():
+        print("  [BOOTSTRAP] Creating virtual environment in llm-engine/.venv...")
+        res = subprocess.run([sys.executable, "-m", "venv", str(llm_venv)], cwd=LLM_DIR)
+        if res.returncode != 0:
+            print("ERROR: Failed to create llm-engine virtual environment.", file=sys.stderr)
+            return False
+
+    llm_py = get_python_interpreter(LLM_DIR)
+    llm_uv = get_uv_binary(LLM_DIR)
+
+    if not llm_uv:
+        print("  [BOOTSTRAP] Installing 'uv' inside llm-engine/.venv...")
+        res = subprocess.run([llm_py, "-m", "pip", "install", "uv"], cwd=LLM_DIR)
+        if res.returncode != 0:
+            print("ERROR: Failed to install uv in llm-engine/.venv.", file=sys.stderr)
+            return False
+        llm_uv = get_uv_binary(LLM_DIR)
+
+    print("  [BOOTSTRAP] Synchronizing dependencies via 'uv sync' in llm-engine/...")
+    res = subprocess.run([str(llm_uv), "sync"], cwd=LLM_DIR)
+    if res.returncode != 0:
+        print("ERROR: 'uv sync' failed in llm-engine/.", file=sys.stderr)
+        return False
+    print("  [OK] LLM Engine dependencies synchronized.")
+
+    # 3. Frontend node_modules
+    frontend_modules = FRONTEND_DIR / "node_modules"
+    if not frontend_modules.exists():
+        print("  [BOOTSTRAP] Installing Frontend npm packages (node_modules)...")
+        npm_bin = "npm.cmd" if sys.platform == "win32" else "npm"
+        res = subprocess.run([npm_bin, "install"], cwd=FRONTEND_DIR)
+        if res.returncode != 0:
+            print("ERROR: Failed to install Frontend npm packages.", file=sys.stderr)
+            return False
+    else:
+        print("  [OK] Frontend npm packages ready.")
+
+    print("All service dependencies bootstrapped successfully.\n")
+    return True
+
+
 def start_services():
-    """Spawn Backend, LLM Engine, and Frontend processes concurrently."""
+    """Spawn Backend, LLM Engine, and Frontend processes concurrently in dedicated console windows."""
     print("=== Step 4: Starting Microservices ===")
 
     services = [
@@ -201,16 +289,16 @@ def start_services():
     backend_py = get_python_interpreter(BACKEND_DIR)
     llm_py = get_python_interpreter(LLM_DIR)
 
-    backend_cmd = [backend_py, "-m", "uvicorn", "app.main:app", "--port", "8000"]
-    llm_cmd = [llm_py, "-m", "uvicorn", "app.main:app", "--port", "8001"]
-
-    npm_bin = "npm.cmd" if sys.platform == "win32" else "npm"
-    frontend_cmd = [npm_bin, "run", "dev"]
-
-    # Configure dedicated console window creation for Windows
     popen_kwargs = {}
     if sys.platform == "win32":
+        backend_cmd = ["cmd.exe", "/k", f"title FrontRow - Backend API (:8000) && \"{backend_py}\" -m uvicorn app.main:app --port 8000 --reload"]
+        llm_cmd = ["cmd.exe", "/k", f"title FrontRow - LLM Engine (:8001) && \"{llm_py}\" -m uvicorn app.main:app --port 8001 --reload"]
+        frontend_cmd = ["cmd.exe", "/k", f"title FrontRow - Frontend App (:3000) && npm run dev"]
         popen_kwargs["creationflags"] = subprocess.CREATE_NEW_CONSOLE
+    else:
+        backend_cmd = [backend_py, "-m", "uvicorn", "app.main:app", "--port", "8000", "--reload"]
+        llm_cmd = [llm_py, "-m", "uvicorn", "app.main:app", "--port", "8001", "--reload"]
+        frontend_cmd = ["npm", "run", "dev"]
 
     processes = []
     try:
@@ -271,6 +359,10 @@ def main():
     print("      FrontRow One-Shot Initialization & Runner         ")
     print("==========================================================")
     print()
+
+    # 0. Dependency Bootstrapping
+    if not ensure_dependencies():
+        sys.exit(1)
 
     # 1. Environment files verification
     if not args.skip_env:
