@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { getUser, removeToken, isAuthenticated } from '@/lib/auth';
+import { getUser, removeToken, isAuthenticated } from '../lib/auth';
 
 export default function Navbar() {
   const [loggedIn, setLoggedIn] = useState(false);
