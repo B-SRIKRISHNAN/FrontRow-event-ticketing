@@ -12,8 +12,9 @@ class GeminiProvider(LLMProvider):
     Utilizes structured JSON output mode to extract Pydantic SeatSearchQuery objects.
     """
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, model_name: str = "gemini-1.5-flash"):
         self.api_key = api_key
+        self.model_name = model_name
         self.mock_fallback = MockProvider()
         self.client = None
 
@@ -44,7 +45,7 @@ class GeminiProvider(LLMProvider):
         try:
             # Call Gemini structured output mode
             response = self.client.models.generate_content(
-                model="gemini-1.5-flash",
+                model=self.model_name,
                 contents=full_prompt,
                 config={
                     "response_mime_type": "application/json",

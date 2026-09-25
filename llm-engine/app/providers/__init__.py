@@ -7,7 +7,10 @@ from app.providers.mock import MockProvider
 def get_llm_provider() -> LLMProvider:
     provider_name = settings.LLM_PROVIDER.lower()
     if provider_name == "gemini":
-        return GeminiProvider(api_key=settings.GEMINI_API_KEY)
+        return GeminiProvider(
+            api_key=settings.GEMINI_API_KEY,
+            model_name=settings.GEMINI_MODEL,
+        )
     else:
         return MockProvider()
 
