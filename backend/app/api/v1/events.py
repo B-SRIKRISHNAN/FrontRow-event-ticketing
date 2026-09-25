@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -14,6 +15,8 @@ from app.schemas.dto import (
     SeatMapResponse,
     SeatResponse,
 )
+from app.services.llm_client import llm_client
+from app.services.seat_matcher import seat_matcher
 
 router = APIRouter()
 
@@ -88,36 +91,26 @@ async def ai_search_seats(
             detail=f"Event with ID {id} not found.",
         )
 
-    # AI search stub: returns candidate seat preferences based on query keyword hints
-    query_text = payload.query.lower()
+    # Call decoupled LLM Engine microservice (with 3.0s timeout & fallback)
+    parsed_params, llm_fallback = await llm_client.parse_query(payload.query)
 
-    quantity = 2
-    if "1 seat" in query_text or "single" in query_text:
-        quantity = 1
-    elif "3 seats" in query_text:
-        quantity = 3
-
-    adjacency = True
-    if "non-adjacent" in query_text or "separate" in query_text:
-        adjacency = False
-
-    preferred_section = None
-    if "front" in query_text or "row a" in query_text:
-        preferred_section = "A"
-
-    # Select candidate available seat IDs
-    seats_res = await db.execute(
-        select(Seat.id)
-        .where(Seat.event_id == id, Seat.status == "AVAILABLE")
-        .order_by(Seat.row.asc(), Seat.seat_number.asc())
-        .limit(quantity)
+    # Execute deterministic row-as-tier contiguity seat matching (Principle IV)
+    recommended_ids, matcher_fallback = await seat_matcher.match_candidate_seats(
+        db=db,
+        event_id=id,
+        quantity=parsed_params.quantity,
+        adjacency=parsed_params.adjacency,
+        max_price=parsed_params.max_price,
+        preferred_section=parsed_params.preferred_section,
     )
-    recommended_ids = list(seats_res.scalars().all())
+
+    fallback_to_manual = llm_fallback or matcher_fallback
 
     return AISearchResponse(
-        quantity=quantity,
-        adjacency=adjacency,
-        max_price=150.00,
-        preferred_section=preferred_section,
+        quantity=parsed_params.quantity,
+        adjacency=parsed_params.adjacency,
+        max_price=Decimal(str(parsed_params.max_price)) if parsed_params.max_price else None,
+        preferred_section=parsed_params.preferred_section,
         recommended_seat_ids=recommended_ids,
+        fallback_to_manual=fallback_to_manual,
     )

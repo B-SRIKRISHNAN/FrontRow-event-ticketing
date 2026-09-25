@@ -54,5 +54,8 @@ class Settings(BaseModel):
     SWEEPER_POOL_SIZE: int = int(os.getenv("SWEEPER_POOL_SIZE", "2"))
     SWEEPER_INTERVAL_SECONDS: int = int(os.getenv("SWEEPER_INTERVAL_SECONDS", "15"))
 
+    # LLM Engine Microservice URL
+    LLM_ENGINE_URL: str = os.getenv("LLM_ENGINE_URL", "http://localhost:8001")
+
 
 settings = Settings()

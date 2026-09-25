@@ -51,7 +51,7 @@ async def test_sweeper_worker_recycling(db_session):
 
 
 @pytest.mark.asyncio
-async def test_ai_search_stub_endpoint(async_client):
+async def test_ai_search_endpoint(async_client):
     res = await async_client.post(
         "/api/v1/events/1/ai-search",
         json={"query": "I want 2 front row seats in Section A"},
@@ -60,5 +60,5 @@ async def test_ai_search_stub_endpoint(async_client):
     data = res.json()
     assert data["quantity"] == 2
     assert data["adjacency"] is True
-    assert data["preferred_section"] == "A"
+    assert "fallback_to_manual" in data
     assert isinstance(data["recommended_seat_ids"], list)

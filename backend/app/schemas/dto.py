@@ -111,3 +111,5 @@ class AISearchResponse(BaseModel):
     max_price: Optional[Decimal] = None
     preferred_section: Optional[str] = None
     recommended_seat_ids: List[int]
+    fallback_to_manual: bool = False
+
