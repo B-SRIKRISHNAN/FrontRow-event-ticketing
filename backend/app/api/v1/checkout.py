@@ -16,6 +16,7 @@ router = APIRouter()
 
 
 @router.post("/holds/{hold_id}/checkout", response_model=OrderResponse)
+@router.post("/checkout/holds/{hold_id}", response_model=OrderResponse)
 async def checkout_hold(
     hold_id: uuid.UUID,
     payload: CheckoutRequest,

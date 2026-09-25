@@ -145,3 +145,12 @@
 - Tasks T007, T008 in US2 can run in parallel across event catalog & detail page files
 - Tasks T014, T015 in US4 can run in parallel inside orders page
 - Task T018 in Polish can run in parallel with documentation checks
+
+---
+
+## Phase 9: Convergence
+
+**Purpose**: Track findings and remediations identified during convergence assessment
+
+- [x] T020 Add route alias `@router.post("/checkout/holds/{hold_id}")` in `backend/app/api/v1/checkout.py` per `contracts/user_flow_contracts.md` and `US3/AC2` (`partial`)
+
