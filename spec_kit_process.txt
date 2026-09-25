@@ -1,0 +1,27 @@
+SPEC KIT PROCESS:
+
+Constitution 
+     │
+     ▼
+  Specify
+     │
+     ▼
+[ CLARIFY ]      ───> Quality Gate 1: Resolves ambiguities in spec.md
+     │
+     ▼
+    Plan
+     │
+     ▼
+[ CHECKLIST ]    ───> Quality Gate 2: Verifies requirement completeness & quality
+     │
+     ▼
+   Tasks
+     │
+     ▼
+[ ANALYZE ]      ───> Quality Gate 3: Read-only cross-artifact consistency check
+     │
+     ▼
+  Implement
+     │
+     ▼
+[ CONVERGE ]     ───> Quality Gate 4: Compares code against spec & appends missed tasks
