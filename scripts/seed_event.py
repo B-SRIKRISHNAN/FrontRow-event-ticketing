@@ -54,13 +54,13 @@ async def seed_database(backend_dir: Path) -> int:
         async with engine.begin() as conn:
             # 1. Idempotent User Creation
             user_email = "demo@frontrow.com"
-            demo_password_hash = "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeg6Lruj3vjPGga31lW"  # 'demo123'
+            demo_password_hash = "$2b$12$CaDL5Em.nYwY7Z7y43F.MOclYRcaLTZfAbHFcfHAcheFY2No3nuJm"  # 'demo123'
             
             user_stmt = text(
                 """
                 INSERT INTO users (email, hashed_password, created_at)
                 VALUES (:email, :hashed_password, NOW())
-                ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
+                ON CONFLICT (email) DO UPDATE SET hashed_password = EXCLUDED.hashed_password
                 RETURNING id;
                 """
             )
