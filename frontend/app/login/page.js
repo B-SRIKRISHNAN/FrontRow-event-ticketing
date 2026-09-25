@@ -2,10 +2,43 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { api, ApiError } from '@/lib/api';
+import { setToken, setUser } from '@/lib/auth';
+import Toast from '@/components/Toast';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!email || !password) return;
+
+    setLoading(true);
+    setToast(null);
+
+    try {
+      const res = await api.post('/api/v1/auth/login', { email, password });
+      const token = res.access_token;
+      if (token) {
+        setToken(token);
+        setUser({ email });
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth-change'));
+          window.location.href = '/events';
+        }
+      } else {
+        setToast({ message: 'Login failed: Invalid credentials or token missing.', type: 'error' });
+      }
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Invalid credentials. Please try again.';
+      setToast({ message: msg, type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="container" style={{ maxWidth: '440px', paddingTop: '4rem' }}>
@@ -17,7 +50,7 @@ export default function LoginPage() {
           Sign in to manage your ticket holds and orders
         </p>
 
-        <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
               Email Address
@@ -46,8 +79,13 @@ export default function LoginPage() {
             />
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem', padding: '0.85rem' }}>
-            Sign In
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={loading}
+            style={{ marginTop: '0.5rem', padding: '0.85rem' }}
+          >
+            {loading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
 
@@ -58,6 +96,14 @@ export default function LoginPage() {
           </Link>
         </div>
       </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

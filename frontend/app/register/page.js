@@ -2,10 +2,48 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { api, ApiError } from '@/lib/api';
+import { setToken, setUser } from '@/lib/auth';
+import Toast from '@/components/Toast';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!email || !password) return;
+
+    if (password.length < 8) {
+      setToast({ message: 'Password must be at least 8 characters long.', type: 'error' });
+      return;
+    }
+
+    setLoading(true);
+    setToast(null);
+
+    try {
+      const res = await api.post('/api/v1/auth/register', { email, password });
+      const token = res.access_token;
+      if (token) {
+        setToken(token);
+        setUser({ email });
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth-change'));
+          window.location.href = '/events';
+        }
+      } else {
+        setToast({ message: 'Registration succeeded but no token received. Please log in.', type: 'error' });
+      }
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Registration failed. Please try again.';
+      setToast({ message: msg, type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="container" style={{ maxWidth: '440px', paddingTop: '4rem' }}>
@@ -17,7 +55,7 @@ export default function RegisterPage() {
           Register to unlock real-time seat holds and AI recommendations
         </p>
 
-        <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
               Email Address
@@ -47,8 +85,13 @@ export default function RegisterPage() {
             />
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem', padding: '0.85rem' }}>
-            Register Account
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={loading}
+            style={{ marginTop: '0.5rem', padding: '0.85rem' }}
+          >
+            {loading ? 'Creating Account...' : 'Register Account'}
           </button>
         </form>
 
@@ -59,6 +102,14 @@ export default function RegisterPage() {
           </Link>
         </div>
       </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

@@ -8,9 +8,17 @@ export default function Navbar() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [user, setUserState] = useState(null);
 
-  useEffect(() => {
+  const syncAuth = () => {
     setLoggedIn(isAuthenticated());
     setUserState(getUser());
+  };
+
+  useEffect(() => {
+    syncAuth();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('auth-change', syncAuth);
+      return () => window.removeEventListener('auth-change', syncAuth);
+    }
   }, []);
 
   const handleLogout = () => {
@@ -18,6 +26,7 @@ export default function Navbar() {
     setLoggedIn(false);
     setUserState(null);
     if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth-change'));
       window.location.href = '/login';
     }
   };
