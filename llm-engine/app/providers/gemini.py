@@ -41,6 +41,7 @@ class GeminiProvider(LLMProvider):
         )
 
         full_prompt = f"{system_instruction}\n\nUser Query: {prompt}"
+        logger.info(f"[GEMINI-PROVIDER] Calling Gemini model '{self.model_name}' with prompt: '{prompt}'")
 
         try:
             # Call Gemini structured output mode
@@ -54,10 +55,12 @@ class GeminiProvider(LLMProvider):
             )
 
             if response and response.text:
+                logger.info(f"[GEMINI-PROVIDER] Gemini Raw Output: '{response.text.strip()}'")
                 parsed = SeatSearchQuery.model_validate_json(response.text)
+                logger.info(f"[GEMINI-PROVIDER] Parsed SeatSearchQuery: {parsed.model_dump()}")
                 return parsed
 
         except Exception as e:
-            logger.error(f"Gemini API call failed: {e}. Falling back to MockProvider.")
+            logger.error(f"[GEMINI-PROVIDER] Gemini API call failed: {e}. Falling back to MockProvider.")
 
         return await self.mock_fallback.parse_query(prompt)

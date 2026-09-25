@@ -1,7 +1,10 @@
+import logging
 from typing import List, Optional, Tuple
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.domain import Seat
+
+logger = logging.getLogger("backend.seat_matcher")
 
 
 class SeatMatcher:
@@ -27,6 +30,11 @@ class SeatMatcher:
         Matches candidate available seat IDs.
         Returns: Tuple[List[seat_ids], fallback_to_manual: bool]
         """
+        logger.info(
+            f"[SEAT-MATCHER] Matching seats for event_id={event_id} | "
+            f"qty={quantity}, adjacency={adjacency}, max_price={max_price}, preferred_section='{preferred_section}'"
+        )
+
         # Base query for AVAILABLE seats in event ordered strictly by row ASC, seat_number ASC
         query = (
             select(Seat)
@@ -48,7 +56,16 @@ class SeatMatcher:
         seats = result.scalars().all()
 
         if not seats:
+            logger.warning(
+                f"[SEAT-MATCHER] 0 matching available seats found for event_id={event_id} with given criteria. "
+                "Triggering manual fallback."
+            )
             return [], True
+
+        logger.info(
+            f"[SEAT-MATCHER] Found {len(seats)} available matching seat(s) in DB: "
+            f"{[{'id': s.id, 'row': s.row, 'num': s.seat_number, 'price': float(s.price), 'sec': s.section} for s in seats]}"
+        )
 
         # Group available seats by row
         seats_by_row: dict[str, List[Seat]] = {}
@@ -75,21 +92,31 @@ class SeatMatcher:
             for row_name, row_seat_list in seats_by_row.items():
                 match = find_contiguous_in_row(row_seat_list, quantity)
                 if match:
+                    logger.info(f"[SEAT-MATCHER] Matched {quantity} contiguous seat(s) in Row '{row_name}': {match}")
                     return match, False
-            # No row contained a contiguous block of size `quantity` -> Return empty & trigger manual fallback
+            logger.warning(
+                f"[SEAT-MATCHER] Required adjacency={adjacency} for qty={quantity} could not be satisfied in any single row. "
+                "Triggering manual fallback."
+            )
             return [], True
 
         # Case 2: Adjacency is false/unset -> Prefer contiguous block in one row, fallback to non-contiguous
         for row_name, row_seat_list in seats_by_row.items():
             match = find_contiguous_in_row(row_seat_list, quantity)
             if match:
+                logger.info(f"[SEAT-MATCHER] Matched {quantity} seat(s) in Row '{row_name}': {match}")
                 return match, False
 
         # Non-contiguous fallback: Select first `quantity` seats in row ASC, seat_number ASC order
         non_contiguous_ids = [s.id for s in seats[:quantity]]
         if len(non_contiguous_ids) < quantity:
+            logger.warning(
+                f"[SEAT-MATCHER] Only found {len(non_contiguous_ids)} seat(s) of requested qty={quantity}. "
+                "Triggering manual fallback."
+            )
             return non_contiguous_ids, True
 
+        logger.info(f"[SEAT-MATCHER] Selected non-adjacent candidate seat IDs: {non_contiguous_ids}")
         return non_contiguous_ids, False
 
 

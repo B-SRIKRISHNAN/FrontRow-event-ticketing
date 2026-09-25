@@ -1,6 +1,9 @@
+import logging
 import re
 from app.providers.base import LLMProvider
 from app.schemas.query import SeatSearchQuery
+
+logger = logging.getLogger("llm_engine.mock")
 
 
 class MockProvider(LLMProvider):
@@ -11,6 +14,7 @@ class MockProvider(LLMProvider):
 
     async def parse_query(self, prompt: str) -> SeatSearchQuery:
         text = prompt.lower()
+        logger.info(f"[MOCK-PROVIDER] Parsing natural language prompt: '{prompt}'")
 
         # Extract quantity
         quantity = 1
@@ -64,9 +68,14 @@ class MockProvider(LLMProvider):
         elif "balcony" in text or "back" in text:
             preferred_section = "C"
 
-        return SeatSearchQuery(
+        result = SeatSearchQuery(
             quantity=quantity,
             adjacency=adjacency,
             max_price=max_price,
             preferred_section=preferred_section,
         )
+        logger.info(
+            f"[MOCK-PROVIDER] Extracted Params -> quantity={quantity}, adjacency={adjacency}, "
+            f"max_price={max_price}, preferred_section={preferred_section}"
+        )
+        return result

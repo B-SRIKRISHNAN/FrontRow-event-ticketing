@@ -1,8 +1,10 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.config import settings
 from app.providers import get_llm_provider, LLMProvider
 from app.schemas.query import ParseQueryRequest, SeatSearchQuery
 
+logger = logging.getLogger("llm_engine.api")
 router = APIRouter()
 
 
@@ -20,10 +22,13 @@ async def parse_query(
     payload: ParseQueryRequest,
     provider: LLMProvider = Depends(get_llm_provider),
 ):
+    logger.info(f"[LLM-ENGINE-API] Incoming /api/v1/parse-query | Query: '{payload.query}' | Provider: {settings.LLM_PROVIDER}")
     try:
         result = await provider.parse_query(payload.query)
+        logger.info(f"[LLM-ENGINE-API] Response: {result.model_dump()}")
         return result
     except Exception as e:
+        logger.error(f"[LLM-ENGINE-API] Error processing parse-query: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to parse query: {str(e)}",

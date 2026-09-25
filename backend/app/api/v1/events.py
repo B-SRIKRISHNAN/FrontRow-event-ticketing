@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import List
@@ -18,7 +19,9 @@ from app.schemas.dto import (
 from app.services.llm_client import llm_client
 from app.services.seat_matcher import seat_matcher
 
+logger = logging.getLogger("backend.events")
 router = APIRouter()
+
 
 
 @router.get("", response_model=List[EventResponse])
@@ -83,6 +86,8 @@ async def ai_search_seats(
     payload: AISearchRequest,
     db: AsyncSession = Depends(get_db),
 ):
+    logger.info(f"=== [AI-SEARCH-FLOW START] User query for Event #{id}: '{payload.query}' ===")
+
     # Verify event existence
     event_res = await db.execute(select(Event).where(Event.id == id))
     if not event_res.scalar_one_or_none():
@@ -91,10 +96,11 @@ async def ai_search_seats(
             detail=f"Event with ID {id} not found.",
         )
 
-    # Call decoupled LLM Engine microservice (with 3.0s timeout & fallback)
+    # Step 1: Call decoupled LLM Engine microservice (with 3.0s timeout & fallback)
     parsed_params, llm_fallback = await llm_client.parse_query(payload.query)
+    logger.info(f"[AI-SEARCH-FLOW] LLM Parsed Parameters -> {parsed_params.model_dump()} (llm_fallback={llm_fallback})")
 
-    # Execute deterministic row-as-tier contiguity seat matching (Principle IV)
+    # Step 2: Execute deterministic row-as-tier contiguity seat matching (Principle IV)
     recommended_ids, matcher_fallback = await seat_matcher.match_candidate_seats(
         db=db,
         event_id=id,
@@ -105,6 +111,7 @@ async def ai_search_seats(
     )
 
     fallback_to_manual = llm_fallback or matcher_fallback
+    logger.info(f"=== [AI-SEARCH-FLOW END] Candidate Seat IDs: {recommended_ids} | Fallback to Manual: {fallback_to_manual} ===")
 
     return AISearchResponse(
         quantity=parsed_params.quantity,
